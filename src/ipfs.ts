@@ -49,9 +49,7 @@ export async function uploadJSONToIPFS(json: Record<string, any>): Promise<strin
 
   if (cid) {
     await pinWeb3Storage(cid);
-    console.log('pinned web3.storage');
     await pinStarton(cid);
-    console.log('pinned starton');
   }
   return cid;
 }
@@ -89,7 +87,7 @@ async function pinWeb3Storage(cid: string) {
     await axios.post(
       'https://api.web3.storage/pins',
       {
-        name: 'uni-incentives',
+        name: 'rewards',
         cid,
       },
       {
@@ -100,8 +98,10 @@ async function pinWeb3Storage(cid: string) {
         },
       }
     );
-  } catch (e) {
-    console.log('Failed to pin on web3.storage', e);
+
+    console.log('pinned CID to web3storage');
+  } catch (e: any) {
+    console.log('Failed to pin on web3.storage', e.response.statusText);
   }
 }
 
@@ -119,7 +119,9 @@ async function pinStarton(cid: string) {
         },
       }
     );
-  } catch (e) {
-    console.log('Failed to pin on Starton', e);
+
+    console.log('pinned CID to starton');
+  } catch (e: any) {
+    console.log('Failed to pin on Starton', e.response.statusText);
   }
 }

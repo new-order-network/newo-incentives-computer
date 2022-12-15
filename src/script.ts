@@ -3,7 +3,7 @@ import { parseEther } from 'ethers/lib/utils';
 import { gql, request } from 'graphql-request';
 import moment from 'moment';
 
-import { multicallABI, newoDistributorABI, uniswapV3Interface, veNEWOInterface } from './abis';
+import { multicallABI, uniswapV3Interface, veNEWOInterface } from './abis';
 import { ChainId, CONTRACTS_ADDRESSES } from './globals';
 import { httpProvider } from './provider';
 import { getAmountsForLiquidity } from './uniswap';
@@ -64,7 +64,7 @@ async function fetchPositionsAndSwaps(pool: string, week: number, chainId: numbe
     lTimestamp: week * (7 * 24 * 3600),
     pool: pool,
     // uTimestamp: week * (7 * 24 * 3600) + 7 * 24 * 3600,
-    uTimestamp: 1670306100,
+    uTimestamp: 1670976020,
     first,
   });
 
@@ -120,7 +120,12 @@ interface uniswapIncentiveParameters {
 
 // =================================== LOGIC ===================================
 // returns rewards
-export async function computeUniswapV3Incentives(chainId: number, params: uniswapIncentiveParameters, first: number) {
+export async function computeUniswapV3Incentives(
+  chainId: number,
+  params: uniswapIncentiveParameters,
+  first: number,
+  weeklyDistribution: BigNumber
+) {
   console.log('Computing Uniswap v3 incentives...');
   console.log('-----');
 
@@ -131,27 +136,6 @@ export async function computeUniswapV3Incentives(chainId: number, params: uniswa
   const weekInPast = 1;
   const week = Math.floor(moment().unix() / (7 * 24 * 3600)) - weekInPast;
   const secondsInWeek = 7 * 24 * 3600;
-
-  // Fetch weekly rewards
-  // equal to Angle's https://etherscan.io/address/0x4f91F01cE8ec07c9B1f6a82c18811848254917Ab#readProxyContract
-  const newoDistributor = new Contract(CONTRACTS_ADDRESSES.NewoDistributor as string, newoDistributorABI, provider) as any;
-
-  // uses https://etherscan.io/address/0x9aD7e7b0877582E14c17702EecF49018DD6f2367#readContract
-  // const gaugeWeight = await gaugeController['gauge_relative_weight(address,uint256)'](params.gaugeAddress, week * secondsInWeek);
-  // const rewardRate = process.env.PRODUCTION_SETUP === 'true' ? await newoDistributor.rewardRate() : '218553396329365079';
-  // const reductionRate = process.env.PRODUCTION_SETUP === 'true' ? await newoDistributor.rewardsDuration() : '604800';
-  // const elapsedWeeks = -weekInPast; // Compute rewards for last week, is * -1
-
-  // let weeklyRewards = BigNumber.from(rewardRate).mul(secondsInWeek);
-  // for (let i = 1; i <= elapsedWeeks; i++) {
-  //   weeklyRewards = weeklyRewards.mul(parseEther('1')).div(reductionRate);
-  // }
-  // if (elapsedWeeks < 0) {
-  //   for (let i = 1; i <= -elapsedWeeks; i++) {
-  //     weeklyRewards = weeklyRewards.mul(reductionRate).div(parseEther('1'));
-  //   }
-  // }
-  const weeklyRewards = '100000000000000000000'; // amont to be distributed this week
 
   // data object that we'll fill
   const data: { [holder: string]: { fees: number; token0: number; token1: number } } = {};
@@ -271,7 +255,6 @@ export async function computeUniswapV3Incentives(chainId: number, params: uniswa
 
             // give multiplier to fees, token0 and token1
             if (veMult.toString() != '0') {
-              console.log('veMult: ', veMult.toString());
               tempData[holder].fees *= veMult;
               tempData[holder].token0 *= veMult;
               tempData[holder].token1 *= veMult;
@@ -314,7 +297,7 @@ export async function computeUniswapV3Incentives(chainId: number, params: uniswa
   // console.log('Total token0: ', totalToken0);
   // console.log('Total token1: ', totalToken1);
   // console.log('Total fees: ', totalFees); // todo why does this print so ugly
-  console.log('weeklyRewards: ', ethers.utils.formatEther(weeklyRewards), ' NEWO');
+  console.log('weeklyDistribution: ', ethers.utils.formatEther(weeklyDistribution), ' NEWO');
   console.log('-----');
 
   // rewards object that we fill
@@ -329,7 +312,7 @@ export async function computeUniswapV3Incentives(chainId: number, params: uniswa
       (params.weights.token1 * data[holder].token1) / totalToken1;
 
     // save rewards to holder
-    rewards[holder] = !!rewards[holder] ? rewards[holder] : 0 + BN2Number(weeklyRewards) * ratio;
+    rewards[holder] = !!rewards[holder] ? rewards[holder] : 0 + BN2Number(weeklyDistribution) * ratio;
 
     // log the rewards owed in console for easy viewing
     console.log(holder, ' gets ', rewards[holder], ' NEWO');

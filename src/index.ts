@@ -1,13 +1,14 @@
 import 'dotenv/config';
 
+import { ethers } from 'ethers';
 import express from 'express';
 import moment from 'moment';
 
 import { publishToGithubRepo } from './github';
-import { ChainId, CONTRACTS_ADDRESSES } from './globals';
+import { ChainId, CONTRACTS_ADDRESSES, weeklyDistribution } from './globals';
 import { requireEnvVars } from './provider';
 import { computeUniswapV3Incentives } from './script';
-import { addLastWeekRewards, RewardType, updateRewards, uploadAndPush } from './utils';
+import { addLastWeekRewards, RewardType, uniswapIncentiveParameters, updateRewards, uploadAndPush } from './utils';
 
 const app = express();
 
@@ -29,23 +30,14 @@ if (process.env.PRODUCTION_SETUP === 'true' && !!process.env.HEADER_KEY && !!pro
 // =================================== ROUTES ==================================
 app.get('/mainnet', async (req, res) => {
   console.log('Mainnet route taken...');
-  interface uniswapIncentiveParameters {
-    //todo globalize
-    name: string;
-    weights: { fees: number; token0: number; token1: number };
-    uniswapV3poolAddress: string;
-    NEWO: string;
-  }
 
-  // gets passed into the compute function
+  // constants
   const NEWO_USDC: uniswapIncentiveParameters = {
     name: 'NEWO / USDC',
     weights: { fees: 0.4, token0: 0.4, token1: 0.2 }, // todo make sure these are the weights we want
     uniswapV3poolAddress: CONTRACTS_ADDRESSES.poolAddress,
     NEWO: CONTRACTS_ADDRESSES.NEWO,
   };
-
-  // initialize rewards as empty
   const rewards: RewardType = {};
 
   if (process.env.PRODUCTION_SETUP === 'true') {
@@ -54,7 +46,11 @@ app.get('/mainnet', async (req, res) => {
     // await addLastWeekRewards(rewards, ChainId.MAINNET);
 
     // call updateRewards with the computed rewards data
-    updateRewards(rewards, await computeUniswapV3Incentives(ChainId.MAINNET, NEWO_USDC, parseInt(SWAP_TO_CONSIDER)), 'Uni-V3 NEWO/USDC LP');
+    updateRewards(
+      rewards,
+      await computeUniswapV3Incentives(ChainId.MAINNET, NEWO_USDC, parseInt(SWAP_TO_CONSIDER), weeklyDistribution),
+      'Uni-V3 NEWO/USDC LP'
+    );
 
     // upload merkle root to distributor contract
     await uploadAndPush(rewards, ChainId.MAINNET);
@@ -80,27 +76,31 @@ app.get('/mainnet', async (req, res) => {
     // await addLastWeekRewards(rewards, ChainId.GOERLI);
 
     // call updateRewards with the computed rewards data
-    updateRewards(rewards, await computeUniswapV3Incentives(ChainId.GOERLI, NEWO_USDC, parseInt(SWAP_TO_CONSIDER)), 'Uni-V3 NEWO/USDC LP');
+    updateRewards(
+      rewards,
+      await computeUniswapV3Incentives(ChainId.GOERLI, NEWO_USDC, parseInt(SWAP_TO_CONSIDER), weeklyDistribution),
+      'Uni-V3 NEWO/USDC LP'
+    );
 
     // upload merkle root to distributor contract
     await uploadAndPush(rewards, ChainId.GOERLI); // upload merkle root to contract
 
-    // create rewards files by weekId
-    const weekId = Math.floor(moment().unix() / (7 * 86400));
-    const files = [
-      {
-        name: `mainnet/rewards_${weekId}.json`,
-        contents: JSON.stringify(rewards),
-      },
-    ];
+    // // create rewards files by weekId
+    // const weekId = Math.floor(moment().unix() / (7 * 86400));
+    // const files = [
+    //   {
+    //     name: `mainnet/rewards_${weekId}.json`,
+    //     contents: JSON.stringify(rewards),
+    //   },
+    // ];
 
-    // upload rewards files to public github repo
-    console.log('Uploading to github...');
-    try {
-      await publishToGithubRepo('jacobmakarsky', 'uniswapv3-rewards', files);
-    } catch (error) {
-      console.log('Failed to publish to github repo ❌: ', error);
-    }
+    // // upload rewards files to public github repo
+    // console.log('Uploading to github...');
+    // try {
+    //   await publishToGithubRepo('jacobmakarsky', 'uniswapv3-rewards', files);
+    // } catch (error: any) {
+    //   console.log('Failed to publish to github repo ❌: ', error.status, error.response.data.message);
+    // }
   }
 
   res.json(rewards);

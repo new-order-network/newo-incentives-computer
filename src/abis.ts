@@ -40,11 +40,5 @@ export const merkleDistributorABI = [
   'function tree() external view returns(bytes32,bytes32)',
 ];
 
-// TODO
-export const newoDistributorABI = [
-  'function rewardRate() external view returns(uint256)',
-  'function rewardsDuration() external view returns(uint256)',
-];
-
 export const uniswapV3Interface = new utils.Interface(uniswapV3PoolABI);
 export const veNEWOInterface = new utils.Interface(veNEWOABI);

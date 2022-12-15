@@ -12,6 +12,14 @@ import { CONTRACTS_ADDRESSES } from './globals';
 import { getBytes32FromIpfsHash, uploadJSONToIPFS } from './ipfs';
 import { httpProvider } from './provider';
 
+export interface uniswapIncentiveParameters {
+  //todo globalize
+  name: string;
+  weights: { fees: number; token0: number; token1: number };
+  uniswapV3poolAddress: string;
+  NEWO: string;
+}
+
 export function BN2Number(bn: BigNumberish, base = 18) {
   return parseFloat(formatUnits(bn, base));
 }
@@ -108,7 +116,6 @@ export const addLastWeekRewards = async (rewards: RewardType, chainId: number) =
 
 export const uploadAndPush = async (rewards: RewardType, chainId: number) => {
   console.log('Uploading merkle root to distributor contract...');
-  console.log('-----');
 
   const keeper = new ethers.Wallet(process.env.PRIVATE_KEY_UNISWAP_INCENTIVES as string, httpProvider(chainId));
   const merkleRootDistributor = new Contract(CONTRACTS_ADDRESSES.MerkleRootDistributor as string, merkleDistributorABI, keeper);
@@ -126,12 +133,16 @@ export const uploadAndPush = async (rewards: RewardType, chainId: number) => {
     const hash = ethers.utils.keccak256(
       ethers.utils.defaultAbiCoder.encode(['address', 'address', 'uint256'], [utils.getAddress(keys[key]), CONTRACTS_ADDRESSES.NEWO, sum])
     );
+    // console.log('address: ', utils.getAddress(keys[key]));
+    // console.log('newo: ', CONTRACTS_ADDRESSES.NEWO);
+    // console.log('sum: ', ethers.utils.formatEther(sum));
+    // console.log('hash/leaf: ', hash);
     elements.push(hash);
   }
 
   const merkleTree = new MerkleTree(elements, keccak256, { hashLeaves: false, sortPairs: true });
-  console.log('Merkle tree generated: ');
-  console.log(merkleTree.toString());
+  // console.log('Merkle tree generated: ');
+  // console.log(merkleTree.toString());
 
   // upload to IPFS
   const ipfsHash = (await uploadJSONToIPFS(rewards)) as string;
@@ -150,7 +161,7 @@ export const uploadAndPush = async (rewards: RewardType, chainId: number) => {
 
   // upload root and ipfs to distributor contract
   await merkleRootDistributor.connect(keeper).updateTree([merkleTree.getHexRoot(), ipfsBytes], { gasLimit: 1000000 });
-  // const merkle = await merkleRootDistributor.connect(keeper).updateTree([merkleTree.getHexRoot()], { gasLimit: 1000000 });
-  // must be in this [] format cuz of the way getHexRoot returns
+
+  console.log('Merkle Rewards Distributor contract updated with merkle tree & IPFS CID...');
   console.log('-----');
 };
