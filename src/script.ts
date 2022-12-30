@@ -64,7 +64,7 @@ async function fetchPositionsAndSwaps(pool: string, week: number, chainId: numbe
     lTimestamp: week * (7 * 24 * 3600),
     pool: pool,
     // uTimestamp: week * (7 * 24 * 3600) + 7 * 24 * 3600,
-    uTimestamp: 1670976020,
+    uTimestamp: 1672353958,
     first,
   });
 

@@ -117,7 +117,9 @@ export const addLastWeekRewards = async (rewards: RewardType, chainId: number) =
 export const uploadAndPush = async (rewards: RewardType, chainId: number) => {
   console.log('Uploading merkle root to distributor contract...');
 
-  const keeper = new ethers.Wallet(process.env.PRIVATE_KEY_UNISWAP_INCENTIVES as string, httpProvider(chainId));
+  const localProvider = new ethers.providers.JsonRpcProvider('http://127.0.0.1:8545/'); // for local testing
+
+  const keeper = new ethers.Wallet(process.env.PRIVATE_KEY_UNISWAP_INCENTIVES as string, localProvider);
   const merkleRootDistributor = new Contract(CONTRACTS_ADDRESSES.MerkleRootDistributor as string, merkleDistributorABI, keeper);
 
   const elements: string[] = [];

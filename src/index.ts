@@ -85,22 +85,22 @@ app.get('/mainnet', async (req, res) => {
     // upload merkle root to distributor contract
     await uploadAndPush(rewards, ChainId.GOERLI); // upload merkle root to contract
 
-    // // create rewards files by weekId
-    // const weekId = Math.floor(moment().unix() / (7 * 86400));
-    // const files = [
-    //   {
-    //     name: `mainnet/rewards_${weekId}.json`,
-    //     contents: JSON.stringify(rewards),
-    //   },
-    // ];
+    // create rewards files by weekId
+    const weekId = Math.floor(moment().unix() / (7 * 86400));
+    const files = [
+      {
+        name: `mainnet/rewards_${weekId}.json`,
+        contents: JSON.stringify(rewards),
+      },
+    ];
 
-    // // upload rewards files to public github repo
-    // console.log('Uploading to github...');
-    // try {
-    //   await publishToGithubRepo('jacobmakarsky', 'uniswapv3-rewards', files);
-    // } catch (error: any) {
-    //   console.log('Failed to publish to github repo ❌: ', error.status, error.response.data.message);
-    // }
+    // upload rewards files to public github repo
+    console.log('Uploading to github...');
+    try {
+      await publishToGithubRepo('jacobmakarsky', 'uniswapv3-rewards', files);
+    } catch (error: any) {
+      console.log('Failed to publish to github repo ❌: ', error.status, error.response.data.message);
+    }
   }
 
   res.json(rewards);
